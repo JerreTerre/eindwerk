@@ -7,9 +7,9 @@ switch = Button(6 ,pull_up=False)  # Change 17 to your actual GPIO pin number
 try:
     while True:
         if switch.is_pressed:
-            print("Switch is OFFfff")  # Because of pull-up resistor, pressed = OFF
+            print("Switch is OFF")  # Because of pull-up resistor, pressed = OFF
         else:
-            print("Switch is ONnnn")   # When not pressed = ON
+            print("Switch is ON")   # When not pressed = ON
         sleep(0.1)  # Small delay to prevent CPU overload
 
 except KeyboardInterrupt:
