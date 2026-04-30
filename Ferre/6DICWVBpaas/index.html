@@ -1,0 +1,124 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <title>Flask P-Regelaar</title>
+  <meta name="description" content="Website voor temperatuur regeling" />
+  <meta name="keywords" content="P-Regelaar, temperatuur, Flask" />
+  <meta http-equiv="content-type" content="text/html; charset=windows-1252" />
+  <link rel="stylesheet" type="text/css" href="style.css" />
+  
+  <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+
+  <script>
+    // Update W (setpoint via software slider)
+    function updateW(value) {
+      $("#Wval_slider_text").text(value);
+      $.post("/updateW", { "Wnew": value });
+    }
+
+    // Update P-waarde
+    function updateP(value) {
+      $("#Pval").text(value);
+      $.post("/updateP", { "P": value });
+    }
+
+    // Toggle tussen hardware potentiometer en software slider
+    function toggleWSource() {
+      $.post("/toggleW_source", function(data) {
+        updateUI(data.use_potentiometer);
+      });
+    }
+
+    // Update de UI afhankelijk van de mode
+    function updateUI(use_pot) {
+      if (use_pot) {
+        $("#toggleBtn").val("Gebruik Slider");
+        $("#modeText").text("Hardware Potentiometer");
+        $("#Wslider").prop("disabled", true);
+      } else {
+        $("#toggleBtn").val("Gebruik Potmeter");
+        $("#modeText").text("Software Slider");
+        $("#Wslider").prop("disabled", false);
+      }
+    }
+
+    // Live data ophalen
+    window.setInterval(function() {
+      $.getJSON("/values", function(data) {
+        $("#Xval").text(data.X);
+        $("#Yval").text(data.Y);
+        $("#Wval_actual").text(data.W);
+        
+        if (data.use_potentiometer) {
+            $("#Wslider").val(data.W);
+            $("#Wval_slider_text").text(data.W);
+        }
+        
+        $("#Pslider").val(data.P);
+        $("#Pval").text(data.P);
+        updateUI(data.use_potentiometer);
+      });
+    }, 500);
+  </script>
+</head>
+
+<body>
+  <div id="main">
+    <div id="header">
+      <div id="logo">
+        <div id="logo_text">
+          <h1><a href="/">Embedded <span class="logo_colour">Linux</span></a></h1>
+          <h2>Thermostaat met P-regelaar</h2>
+        </div>
+      </div>
+      <div id="menubar">
+        <ul id="menu">
+          <li class="selected"><a href="/">Home</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="site_content">
+      <div class="sidebar">
+        <h3>Status</h3>
+        <ul>
+          <li><strong>Input:</strong> <span id="modeText">--</span></li>
+          <li><strong>X:</strong> <span id="Xval">--</span> °C</li>
+          <li><strong>W:</strong> <span id="Wval_actual">--</span> °C</li>
+          <li><strong>Y:</strong> <span id="Yval">--</span> %</li>
+        </ul>
+      </div>
+
+      <div id="content">
+        <h1>Temperatuurregeling</h1>
+        <p>Pas hier de instellingen aan van de P-regelaar. De waarden worden realtime gelogd in de database.</p>
+        
+        <div class="form_settings">
+          <h2>Gewenste Temperatuur (W)</h2>
+          <p>
+            <span>Input methode wisselen:</span>
+            <input class="submit" type="button" id="toggleBtn" onclick="toggleWSource()" value="Wisselen..." />
+          </p>
+          <p style="padding-top: 15px;">
+            <span>Slider instelling (<span id="Wval_slider_text">20</span> °C):</span>
+            <input type="range" min="0" max="50" step="0.1" value="20" id="Wslider" oninput="updateW(this.value)" style="width: 200px;">
+          </p>
+          
+          <div class="separator"></div>
+          
+          <h2>P-Instelling</h2>
+          <p>
+            <span>P-waarde (<span id="Pval">1.5</span>):</span>
+            <input type="range" min="0" max="100" step="0.1" value="1.5" id="Pslider" oninput="updateP(this.value)" style="width: 200px;">
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+    <div id="footer">
+      Copyright &copy; 2026 - Lowie is een snert</div>
+  </div>
+</body>
+</html>

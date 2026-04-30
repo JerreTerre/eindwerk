@@ -1,0 +1,133 @@
+<!DOCTYPE HTML>
+<html lang="nl">
+<head>
+  <title>Flask PID Regelaar</title>
+  <meta charset="UTF-8">
+  <meta name="description" content="Website voor temperatuur regeling" />
+  <meta name="keywords" content="PID, temperatuur, Flask" />
+  <link rel="stylesheet" href="style.css">
+  
+  <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+  
+  <script>
+    /**
+     * Verzendt de nieuwe gewenste temperatuur (Setpoint) naar de server.
+     */
+    function updateW(value) {
+      $("#Wval").text(value);
+      $.post("/updateW", { "Wnew": value });
+    }
+
+    /**
+     * Leest de huidige standen van de P, I en D sliders en stuurt deze naar de server.
+     */
+    function updatePID() {
+      var P = $("#Pslider").val();
+      var I = $("#Islider").val();
+      var D = $("#Dslider").val();
+
+      $("#Pval").text(P);
+      $("#Ival").text(I);
+      $("#Dval").text(D);
+
+      $.post("/updatePID", { "P": P, "I": I, "D": D });
+    }
+
+    /**
+     * Interval functie: haalt elke 500ms de laatste proceswaarden op van de Flask backend.
+     */
+    window.setInterval(function() {
+      // 1. Haal proceswaarden op (X = temp, Y = output, W = setpoint)
+      $.getJSON("/values", function(data) {
+        $("#Xval").text(data.X);
+        $("#Yval").text(data.Y);
+        $("#Wval").text(data.W);
+        $("#Wslider").val(data.W);
+        
+        // Visuele indicator: toon vlam als de verwarming actief moet zijn
+        if (data.X < data.W) {
+          $("#flame").show();
+        } else {
+          $("#flame").hide();
+        }
+      });
+
+      // 2. Synchroniseer PID waarden (voor het geval ze elders zijn aangepast)
+      $.getJSON("/pidvalues", function(pid) {
+        $("#Pslider").val(pid.P);
+        $("#Islider").val(pid.I);
+        $("#Dslider").val(pid.D);
+
+        $("#Pval").text(pid.P);
+        $("#Ival").text(pid.I);
+        $("#Dval").text(pid.D);
+      });
+    }, 500);
+  </script>
+</head>
+
+<body>
+  <div id="main">
+    
+    <header id="header">
+      <div id="logo">
+        <div id="logo_text">
+          <h1><a href="index.html">Flask Server</a></h1>
+          <h2>Ferre</h2>
+        </div>
+      </div>
+      <nav id="menubar">
+        <ul id="menu">
+          <li class="selected"><a href="index.html">Home</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main id="site_content">
+      <aside class="sidebar">
+        </aside>
+
+      <section id="content">
+        <h1>Temperatuur regeling</h1>
+
+        <article class="control-group">
+          <h2>Gewenste temperatuur (W): <span id="Wval">20</span> °C</h2>
+          <input type="range" min="30" max="60" step="0.1" value="20" 
+                 id="Wslider" oninput="updateW(this.value)">
+        </article>
+
+        <article class="control-group">
+          <h2>PID Instellingen</h2>
+          
+          <div class="slider-row">
+            <label>P (Proportioneel): <span id="Pval">2</span></label>
+            <input type="range" min="0" max="10" step="0.1" value="2" id="Pslider" oninput="updatePID()">
+          </div>
+
+          <div class="slider-row">
+            <label>I (Integraal): <span id="Ival">1</span></label>
+            <input type="range" min="0" max="10" step="0.1" value="1" id="Islider" oninput="updatePID()">
+          </div>
+
+          <div class="slider-row">
+            <label>D (Afgeleide): <span id="Dval">0.5</span></label>
+            <input type="range" min="0" max="10" step="0.1" value="0.5" id="Dslider" oninput="updatePID()">
+          </div>
+        </article>
+
+        <article class="status-group">
+          <h2>Live Waarden</h2>
+          <div id="flame" style="font-size: 80px; display: none; text-align: center;">🔥</div>
+          <p><strong>Huidige Temperatuur (X):</strong> <span id="Xval">--</span> °C</p>
+          <p><strong>Systeem Output (PWM Y):</strong> <span id="Yval">--</span> %</p>
+        </article>
+      </section>
+    </main>
+
+    <footer id="footer">
+      Copyright &copy; 2025-2026
+    </footer>
+    
+  </div>
+</body>
+</html>
