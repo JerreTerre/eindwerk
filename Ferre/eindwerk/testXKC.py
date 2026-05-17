@@ -1,7 +1,7 @@
 from gpiozero import Button
 from signal import pause
 
-SENSOR_PIN = 10  # BCM pin
+SENSOR_PIN = 15  # BCM pin
 
 sensor = Button(SENSOR_PIN, pull_up=False)
 
