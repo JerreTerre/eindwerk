@@ -19,11 +19,16 @@ try:
     
 
     while True:
-        kit.servo[0].angle=10
-        print("90")
+        kit.servo[9].angle = 160
+        kit.servo[13].angle = 160
+        kit.servo[5].angle = 160
+        kit.servo[1].angle = 160
+        print("160")
         sleep(1)
-        kit.servo[0].angle=110
-
+        kit.servo[9].angle = 0
+        kit.servo[13].angle = 0
+        kit.servo[5].angle = 0
+        kit.servo[1].angle = 0
         print("0")
         sleep(1)
 

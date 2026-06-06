@@ -6,7 +6,7 @@ import sys
 
 
 SENSOR_PIN = 17
-SWITCH_PIN = 6       # knop voor servo 3
+SWITCH_PIN = 26       # knop voor servo 3
 MODE1_PIN = 27       # rocker stand 1
 MODE2_PIN = 22       # rocker stand 2
 

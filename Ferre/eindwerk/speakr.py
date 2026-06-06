@@ -4,7 +4,7 @@ import os
 
 def speel_succes_geluid():
     # Het exacte pad naar jouw bestand
-    bestands_pad = "/home/pi/Ferre/eindwerk/geluid/insomnia.mp3"
+    bestands_pad = "/home/pi/Ferre/eindwerk/geluid/olifant.mp3"
     
     # Controleer of het bestand echt op die plek staat
     if not os.path.exists(bestands_pad):

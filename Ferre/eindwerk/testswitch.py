@@ -2,7 +2,7 @@ from gpiozero import Button
 from time import sleep
 
 # Create a button object connected to GPIO17
-switch = Button(6 ,pull_up=False)  # Change 17 to your actual GPIO pin number
+switch = Button(26 ,pull_up=False)  # Change 17 to your actual GPIO pin number
 
 try:
     while True:
