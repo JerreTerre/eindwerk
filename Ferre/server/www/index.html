@@ -1,84 +1,68 @@
-<!DOCTYPE HTML>
-<html>
-
+<!doctype html>
+<html lang="nl">
 <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Codebreaker</title>
-  <meta name="description" content="Website voor codebreaker spel" />
-  <meta name="keywords" content="Codebreaker, Flask, Raspberry Pi" />
-  <meta http-equiv="content-type" content="text/html; charset=windows-1252" />
-  <link rel="stylesheet" type="text/css" href="style.css" />
-
-  <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
-
-  <script>
-    function rebootPi() {
-      $.post("/rebootPi");
-    }
-
-    function shutdownPi() {
-      $.post("/shutdownPi");
-    }
-
-    window.setInterval(function() {
-      $.getJSON("/values", function(data) {
-        $("#doos1").text(data.dozen[0]);
-        $("#doos2").text(data.dozen[1]);
-        $("#doos3").text(data.dozen[2]);
-        $("#doos4").text(data.dozen[3]);
-
-        $("#laatstePoging").text(data.laatste_poging.join(" "));
-        $("#pogingen").text(data.pogingen);
-        $("#bericht").text(data.bericht);
-
-        $("#codesTabel").empty();
-
-        data.gegokte_codes.forEach(function(rij) {
-          $("#codesTabel").append(
-            "<tr>" +
-            "<td>" + rij.poging + "</td>" +
-            "<td>" + rij.code + "</td>" +
-            "<td>" + rij.score + "</td>" +
-            "</tr>"
-          );
-        });
-      });
-    }, 500);
-  </script>
+  <meta name="description" content="Dashboard voor het Codebreaker spel">
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-  <div id="main">
-    <div id="header">
-      <h1>CODEBREAKER</h1>
-      <h2>Ferre Terryn</h2>
-    </div>
+  <main class="page-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Raspberry Pi spel</p>
+        <h1>Codebreaker</h1>
+      </div>
+      <div class="author">Ferre Terryn</div>
+    </header>
 
-    <div id="site_content">
-      <div id="dozen">
+    <section class="game-panel" aria-label="Huidige code">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Live invoer</p>
+          <h2>Dozen</h2>
+        </div>
+        <span id="connectionStatus" class="status-pill status-loading">Verbinden...</span>
+      </div>
+
+      <div id="dozen" class="box-grid">
         <div class="doos" id="doos1">A</div>
         <div class="doos" id="doos2">B</div>
         <div class="doos" id="doos3">C</div>
         <div class="doos" id="doos4">D</div>
       </div>
+    </section>
 
-      <div id="onderkant">
-        <div id="info_links">
-          <h3>ingevulde code: <span id="laatstePoging">- - - -</span></h3>
-          <p>Pogingen: <span id="pogingen">0</span></p>
-          <p id="bericht">Spel wordt gestart...</p>
-
-          <p>
-            <input class="knop" type="button" onclick="rebootPi()" value="knop voor pi rebooten" />
-          </p>
-
-          <p>
-            <input class="knop" type="button" onclick="shutdownPi()" value="knop voor pi afsluiten" />
-          </p>
+    <section class="dashboard-grid">
+      <article class="card">
+        <div class="card-title">
+          <p class="eyebrow">Laatste poging</p>
+          <h2 id="laatstePoging">- - - -</h2>
         </div>
 
-        <div id="info_rechts">
-          <h3>De algeprobeerde codes:</h3>
+        <div class="stats">
+          <div>
+            <span class="stat-label">Pogingen</span>
+            <strong id="pogingen">0</strong>
+          </div>
+          <div>
+            <span class="stat-label">Score</span>
+            <strong id="score">0/4</strong>
+          </div>
+        </div>
 
+        <p id="bericht" class="message">Spel wordt gestart...</p>
+      </article>
+
+      <article class="card history-card">
+        <div class="card-title">
+          <p class="eyebrow">Historiek</p>
+          <h2>Geprobeerde codes</h2>
+        </div>
+
+        <div class="table-wrap">
           <table>
             <thead>
               <tr>
@@ -89,16 +73,143 @@
             </thead>
             <tbody id="codesTabel">
               <tr>
-                <td>-</td>
-                <td>xxxx</td>
-                <td>-</td>
+                <td colspan="3" class="empty-row">Nog geen pogingen</td>
               </tr>
             </tbody>
           </table>
         </div>
-      </div>
-    </div>
-  </div>
-</body>
+      </article>
+    </section>
 
+    <section class="power-actions" aria-label="Raspberry Pi bediening">
+      <div>
+        <p class="eyebrow">Bediening</p>
+        <h2>Raspberry Pi</h2>
+      </div>
+
+      <div class="actions">
+        <button class="button button-success" type="button" id="restartButton">Spel herstarten</button>
+        <button class="button button-secondary" type="button" id="rebootButton">Pi rebooten</button>
+        <button class="button button-danger" type="button" id="shutdownButton">Pi afsluiten</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const fields = {
+      boxes: [
+        document.getElementById("doos1"),
+        document.getElementById("doos2"),
+        document.getElementById("doos3"),
+        document.getElementById("doos4")
+      ],
+      latest: document.getElementById("laatstePoging"),
+      attempts: document.getElementById("pogingen"),
+      score: document.getElementById("score"),
+      message: document.getElementById("bericht"),
+      table: document.getElementById("codesTabel"),
+      status: document.getElementById("connectionStatus")
+    };
+
+    function setStatus(text, className) {
+      fields.status.textContent = text;
+      fields.status.className = `status-pill ${className}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function renderHistory(rows) {
+      if (!rows || rows.length === 0) {
+        fields.table.innerHTML = '<tr><td colspan="3" class="empty-row">Nog geen pogingen</td></tr>';
+        return;
+      }
+
+      fields.table.innerHTML = rows.map((row) => `
+        <tr>
+          <td>${escapeHtml(row.poging)}</td>
+          <td class="code-cell">${escapeHtml(row.code)}</td>
+          <td>${escapeHtml(row.score)}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderBoxFeedback(feedback) {
+      const states = feedback || ["neutral", "neutral", "neutral", "neutral"];
+
+      fields.boxes.forEach((box, index) => {
+        box.classList.remove("doos-correct", "doos-wrong", "doos-neutral");
+        box.classList.add(`doos-${states[index] || "neutral"}`);
+      });
+    }
+
+    async function postAction(endpoint, question) {
+      if (!window.confirm(question)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(endpoint, { method: "POST" });
+
+        if (!response.ok) {
+          throw new Error("Actie mislukt");
+        }
+
+        fields.message.textContent = "Actie verstuurd.";
+      } catch (error) {
+        fields.message.textContent = "Actie mislukt. Open de pagina via Flask, niet als los HTML-bestand.";
+      }
+    }
+
+    async function refreshValues() {
+      try {
+        const response = await fetch("/values", { cache: "no-store" });
+
+        if (!response.ok) {
+          throw new Error("Geen geldige serverrespons");
+        }
+
+        const data = await response.json();
+        const boxes = data.dozen || ["A", "B", "C", "D"];
+        const latest = data.laatste_poging || ["-", "-", "-", "-"];
+
+        boxes.forEach((value, index) => {
+          fields.boxes[index].textContent = value;
+        });
+
+        renderBoxFeedback(data.feedback);
+        fields.latest.textContent = latest.join(" ");
+        fields.attempts.textContent = data.pogingen ?? 0;
+        fields.score.textContent = `${data.score ?? 0}/4`;
+        fields.message.textContent = data.bericht || "";
+        renderHistory(data.gegokte_codes);
+        setStatus("Online", "status-online");
+      } catch (error) {
+        setStatus("Offline", "status-offline");
+        fields.message.textContent = "Kan geen verbinding maken met de Flask-server.";
+      }
+    }
+
+    document.getElementById("rebootButton").addEventListener("click", () => {
+      postAction("/rebootPi", "Weet je zeker dat je de Raspberry Pi wilt rebooten?");
+    });
+
+    document.getElementById("restartButton").addEventListener("click", () => {
+      postAction("/restartGame", "Wil je het spel opnieuw starten?");
+    });
+
+    document.getElementById("shutdownButton").addEventListener("click", () => {
+      postAction("/shutdownPi", "Weet je zeker dat je de Raspberry Pi wilt afsluiten?");
+    });
+
+    refreshValues();
+    window.setInterval(refreshValues, 500);
+  </script>
+</body>
 </html>

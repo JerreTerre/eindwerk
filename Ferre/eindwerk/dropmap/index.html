@@ -1,0 +1,104 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <title>Codebreaker</title>
+  <meta name="description" content="Website voor codebreaker spel" />
+  <meta name="keywords" content="Codebreaker, Flask, Raspberry Pi" />
+  <meta http-equiv="content-type" content="text/html; charset=windows-1252" />
+  <link rel="stylesheet" type="text/css" href="style.css" />
+
+  <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+
+  <script>
+    function rebootPi() {
+      $.post("/rebootPi");
+    }
+
+    function shutdownPi() {
+      $.post("/shutdownPi");
+    }
+
+    window.setInterval(function() {
+      $.getJSON("/values", function(data) {
+        $("#doos1").text(data.dozen[0]);
+        $("#doos2").text(data.dozen[1]);
+        $("#doos3").text(data.dozen[2]);
+        $("#doos4").text(data.dozen[3]);
+
+        $("#laatstePoging").text(data.laatste_poging.join(" "));
+        $("#pogingen").text(data.pogingen);
+        $("#bericht").text(data.bericht);
+
+        $("#codesTabel").empty();
+
+        data.gegokte_codes.forEach(function(rij) {
+          $("#codesTabel").append(
+            "<tr>" +
+            "<td>" + rij.poging + "</td>" +
+            "<td>" + rij.code + "</td>" +
+            "<td>" + rij.score + "</td>" +
+            "</tr>"
+          );
+        });
+      });
+    }, 500);
+  </script>
+</head>
+
+<body>
+  <div id="main">
+    <div id="header">
+      <h1>CODEBREAKER</h1>
+      <h2>Ferre Terryn</h2>
+    </div>
+
+    <div id="site_content">
+      <div id="dozen">
+        <div class="doos" id="doos1">A</div>
+        <div class="doos" id="doos2">B</div>
+        <div class="doos" id="doos3">C</div>
+        <div class="doos" id="doos4">D</div>
+      </div>
+
+      <div id="onderkant">
+        <div id="info_links">
+          <h3>ingevulde code: <span id="laatstePoging">- - - -</span></h3>
+          <p>Pogingen: <span id="pogingen">0</span></p>
+          <p id="bericht">Spel wordt gestart...</p>
+
+          <p>
+            <input class="knop" type="button" onclick="rebootPi()" value="knop voor pi rebooten" />
+          </p>
+
+          <p>
+            <input class="knop" type="button" onclick="shutdownPi()" value="knop voor pi afsluiten" />
+          </p>
+        </div>
+
+        <div id="info_rechts">
+          <h3>De algeprobeerde codes:</h3>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Poging</th>
+                <th>Code</th>
+                <th>Score</th>
+              </tr>
+            </thead>
+            <tbody id="codesTabel">
+              <tr>
+                <td>-</td>
+                <td>xxxx</td>
+                <td>-</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

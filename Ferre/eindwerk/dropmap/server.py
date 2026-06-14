@@ -23,16 +23,12 @@ pogingen_teller = 0
 gegokte_codes = []
 laatste_bericht = "Spel wordt gestart..."
 laatste_score = 0
-laatste_feedback = ["neutral", "neutral", "neutral", "neutral"]
-restart_spel_event = threading.Event()
 
 # =========================
 # INSTELLINGEN
 # =========================
 
 PULL_UP = False
-C_BOUNCE_TIME = 0.30
-C_STABIEL_TIJD = 0.20
 
 GELUID_PAD = "/home/pi/Ferre/eindwerk/geluid/insomnia.mp3"
 
@@ -52,8 +48,8 @@ vaste_posities = [None, None, None, None]
 
 schakelaarA = Button(12, pull_up=PULL_UP, bounce_time=0.05)
 schakelaarB = Button(6, pull_up=PULL_UP, bounce_time=0.05)
-schakelaarC = Button(15, pull_up=PULL_UP, bounce_time=C_BOUNCE_TIME)
-schakelaarD = Button(14, pull_up=PULL_UP, bounce_time=0.05)
+schakelaarC = Button(13, pull_up=PULL_UP, bounce_time=0.05)
+schakelaarD = Button(26, pull_up=PULL_UP, bounce_time=0.05)
 
 switches = {
     'A': schakelaarA,
@@ -202,11 +198,6 @@ def speel_succes_geluid():
         pygame.mixer.music.play()
 
         while pygame.mixer.music.get_busy():
-            if restart_spel_event.is_set():
-                pygame.mixer.music.stop()
-                zet_bericht("Muziek gestopt. Spel wordt opnieuw gestart...")
-                break
-
             sleep(0.1)
 
     except Exception as e:
@@ -255,18 +246,11 @@ def start_standen_opslaan():
 
 
 def wacht_op_omzetting():
-    while spel_actief and not restart_spel_event.is_set():
+    while spel_actief:
         for letter, btn in switches.items():
             huidige_stand = btn.is_pressed
 
             if huidige_stand != vorige_stand[letter]:
-                if letter == 'C':
-                    sleep(C_STABIEL_TIJD)
-
-                    if btn.is_pressed != huidige_stand:
-                        vorige_stand[letter] = btn.is_pressed
-                        continue
-
                 vorige_stand[letter] = huidige_stand
                 servo_omhoog(letter)
                 sleep(0.2)
@@ -288,9 +272,6 @@ def lees_poging():
     zet_bericht("Zet alleen de foute schakelaars opnieuw om...")
 
     for i in range(4):
-        if restart_spel_event.is_set():
-            return None
-
         if indrukken[i] is not None:
             with data_lock:
                 laatste_poging[i] = indrukken[i]
@@ -310,14 +291,13 @@ def lees_poging():
 
 
 def reset_webdata():
-    global laatste_poging, pogingen_teller, gegokte_codes, laatste_score, laatste_feedback
+    global laatste_poging, pogingen_teller, gegokte_codes, laatste_score
 
     with data_lock:
         laatste_poging = ["-", "-", "-", "-"]
         pogingen_teller = 0
         gegokte_codes = []
         laatste_score = 0
-        laatste_feedback = ["neutral", "neutral", "neutral", "neutral"]
 
 # =========================
 # FLASK ROUTES
@@ -338,28 +318,8 @@ def values():
             pogingen=pogingen_teller,
             gegokte_codes=gegokte_codes.copy(),
             bericht=laatste_bericht,
-            score=laatste_score,
-            feedback=laatste_feedback.copy()
+            score=laatste_score
         )
-
-
-@app.route("/restartGame", methods=["POST"])
-@app.route("/restartgame", methods=["POST"])
-def restart_game():
-    global vaste_posities
-
-    vaste_posities = [None, None, None, None]
-    reset_webdata()
-    restart_spel_event.set()
-
-    try:
-        if pygame.mixer.get_init() and pygame.mixer.music.get_busy():
-            pygame.mixer.music.stop()
-    except Exception:
-        pass
-
-    zet_bericht("Spel wordt opnieuw gestart...")
-    return jsonify(status="ok", bericht="Spel wordt opnieuw gestart...")
 
 
 @app.route("/rebootPi", methods=["POST"])
@@ -379,7 +339,7 @@ def shutdown_pi():
 
 
 def start_spel():
-    global poging, vaste_posities, pogingen_teller, gegokte_codes, laatste_score, laatste_feedback
+    global poging, vaste_posities, pogingen_teller, gegokte_codes, laatste_score
 
     try:
         alle_servos_omlaag()
@@ -389,28 +349,14 @@ def start_spel():
         poging = 0
 
         while spel_actief:
-            if restart_spel_event.is_set():
-                alle_servos_omlaag()
-                start_standen_opslaan()
-                code = maak_code()
-                poging = 0
-                vaste_posities = [None, None, None, None]
-                reset_webdata()
-                restart_spel_event.clear()
-                zet_bericht("Nieuw spel gestart!")
-
             indruk = lees_poging()
 
             if indruk is None:
-                if restart_spel_event.is_set():
-                    continue
-
                 break
 
             poging += 1
 
             correct = 0
-            feedback = ["wrong", "wrong", "wrong", "wrong"]
 
             for i in range(4):
                 juiste = code[i]
@@ -419,7 +365,6 @@ def start_spel():
                 if gekozen == juiste:
                     vaste_posities[i] = juiste
                     correct += 1
-                    feedback[i] = "correct"
                 else:
                     vaste_posities[i] = None
                     servo_omlaag(gekozen)
@@ -427,7 +372,6 @@ def start_spel():
             with data_lock:
                 pogingen_teller = poging
                 laatste_score = correct
-                laatste_feedback = feedback
                 gegokte_codes.insert(0, {
                     "poging": poging,
                     "code": " ".join(indruk),
@@ -441,11 +385,7 @@ def start_spel():
 
                 speel_succes_geluid()
 
-                if restart_spel_event.is_set():
-                    continue
-
                 alle_servos_omlaag()
-                start_standen_opslaan()
                 code = maak_code()
                 poging = 0
                 vaste_posities = [None, None, None, None]

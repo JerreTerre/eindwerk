@@ -67,9 +67,9 @@ try:
 
             try:
                 if schakelaar5.is_pressed:
-                    kit.servo[5].angle = 0
+                    kit.servo[5].angle = 175
                 else:
-                    kit.servo[5].angle = 160
+                    kit.servo[5].angle = 0
             except OSError:
                 print("I2C storing opgevangen bij servo 5 (plaagmodus)")
 
@@ -82,9 +82,9 @@ try:
             try:
                 # servo plaag op channel 1
                 if schakelaar6.is_pressed:
-                    kit.servo[1].angle = 0
-                else:
                     kit.servo[1].angle = 160
+                else:
+                    kit.servo[1].angle = 0
             except OSError:
                 print("I2C storing opgevangen bij servo 1 (plaagmodus)")
 
